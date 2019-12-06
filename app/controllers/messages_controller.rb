@@ -7,14 +7,20 @@ class MessagesController < ApplicationController
 
   def create
     message = current_user.messages.build(message_params)
-    if message.save
-      ActionCable.server.broadcast 'room_channel',
-                                    message: render_message(message)
+    return unless message.save
 
+    ActionCable.server.broadcast 'room_channel',
+                                 message: render_message(message)
+
+    message.mentions.each do |mention|
+      ActionCable.server.broadcast "room_channel_user_#{mention.id}",
+                                   mention: true,
+                                   username: current_user.username
     end
   end
 
   private
+
 
   def get_messages
     @messages = Message.for_display
